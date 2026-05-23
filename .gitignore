@@ -1,0 +1,11 @@
+node_modules
+.npm-cache
+.expo
+.expo-shared
+vite.log
+vite.err.log
+preview.log
+preview.err.log
+dist
+
+.vercel

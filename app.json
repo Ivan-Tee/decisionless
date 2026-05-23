@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Priority Flow",
+    "slug": "priority-flow",
+    "version": "1.0.0",
+    "platforms": [
+      "web"
+    ],
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F6F2EC"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}
