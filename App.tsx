@@ -1,6 +1,7 @@
 import "react-native-gesture-handler";
 import "./global.css";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -13,6 +14,7 @@ export default function App() {
         <StatusBar style="dark" />
         <RootNavigator />
         <Analytics mode="production" />
+        <SpeedInsights />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
