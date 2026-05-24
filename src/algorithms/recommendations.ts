@@ -305,30 +305,39 @@ function allocateProgressWithMaintenanceCompression(
     return null;
   }
 
+  if (!canProgressCompressMaintenance(progress)) {
+    return null;
+  }
+
   const totalMaintenanceAllocated = maintenanceRecommendations.reduce(
     (sum, recommendation) => sum + recommendation.allocatedMinutes,
     0
   );
-  const maxMaintenanceCompression = roundDownToNearestFive(totalMaintenanceAllocated * 0.2);
+  const maxMaintenanceCompression = roundDownToNearestFive(
+    totalMaintenanceAllocated * getMaintenanceCompressionRatio(progress)
+  );
 
   if (maxMaintenanceCompression <= 0) {
     return null;
   }
 
   const extraNeeded = progressMinimum - leftoverMinutes;
-  const compressionTarget = Math.min(extraNeeded, maxMaintenanceCompression);
+
+  if (extraNeeded > maxMaintenanceCompression) {
+    return null;
+  }
+
   const compressedMaintenanceRecommendations = maintenanceRecommendations.map((recommendation) => ({
     ...recommendation
   }));
   const compressedMinutes = compressMaintenanceRecommendations(
     maintenanceCandidates,
     compressedMaintenanceRecommendations,
-    compressionTarget,
+    extraNeeded,
     now
   );
-  const progressAllocatedMinutes = leftoverMinutes + compressedMinutes;
 
-  if (progressAllocatedMinutes <= 0) {
+  if (compressedMinutes < extraNeeded) {
     return null;
   }
 
@@ -339,13 +348,50 @@ function allocateProgressWithMaintenanceCompression(
         activity: progress.activity,
         score: progress.score,
         neglect: progress.neglect,
-        allocatedMinutes: progressAllocatedMinutes,
-        isRecommendedBelowMinimum:
-          progressAllocatedMinutes < progressMinimum && extraNeeded > maxMaintenanceCompression,
+        allocatedMinutes: progressMinimum,
         rationale: progress.rationale
       }
     ]
   };
+}
+
+function canProgressCompressMaintenance(progress: ScoredActivity) {
+  const importance = getSafeImportance(progress.activity);
+  const daysSinceDone = progress.daysSinceLastDone;
+
+  // Recently completed progress should not steal consistency time from
+  // maintenance. If it was touched today/yesterday, it can only use natural
+  // leftover time.
+  if (daysSinceDone <= 1) {
+    return false;
+  }
+
+  if (importance <= 4 && daysSinceDone < 7) {
+    return false;
+  }
+
+  if (importance >= 8 && daysSinceDone >= 2) {
+    return true;
+  }
+
+  if (importance >= 5 && daysSinceDone >= 5) {
+    return true;
+  }
+
+  return daysSinceDone >= 7;
+}
+
+function getMaintenanceCompressionRatio(progress: ScoredActivity) {
+  const importance = getSafeImportance(progress.activity);
+  const daysSinceDone = progress.daysSinceLastDone;
+
+  // Normal compression is capped at 20% so maintenance remains the default
+  // priority. Clearly neglected progress can use a stronger 35% cap.
+  if ((daysSinceDone >= 5 && importance >= 8) || (daysSinceDone >= 7 && importance >= 5)) {
+    return 0.35;
+  }
+
+  return 0.2;
 }
 
 function compressMaintenanceRecommendations(
