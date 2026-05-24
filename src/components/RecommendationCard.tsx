@@ -65,7 +65,12 @@ export function RecommendationCard({
                     {recommendation.activity.type}
                   </Text>
                 </View>
-                <Text className="text-xl text-ink">{formatMinutes(recommendation.allocatedMinutes)}</Text>
+                <View className="items-end gap-1">
+                  <Text className="text-xl text-ink">{formatMinutes(recommendation.allocatedMinutes)}</Text>
+                  {recommendation.isRecommendedBelowMinimum ? (
+                    <Text className="text-xs uppercase tracking-[2px] text-mist">(recommended)</Text>
+                  ) : null}
+                </View>
               </View>
               <Pressable
                 disabled={isCompleting}

@@ -259,14 +259,166 @@ function allocateTimeByPriorityBands(
   const remainingMinutes =
     availableMinutes -
     maintenanceRecommendations.reduce((sum, recommendation) => sum + recommendation.allocatedMinutes, 0);
-  const progressRecommendations = allocateProgressTimeBatched(progressCandidates, remainingMinutes, now);
-  const recommendations = [...maintenanceRecommendations, ...progressRecommendations];
+  let adjustedMaintenanceRecommendations = maintenanceRecommendations;
+  let progressRecommendations = allocateProgressTimeBatched(progressCandidates, remainingMinutes, now);
+
+  if (progressRecommendations.length === 0) {
+    const compressedAllocation = allocateProgressWithMaintenanceCompression(
+      maintenanceCandidates,
+      adjustedMaintenanceRecommendations,
+      progressCandidates,
+      remainingMinutes,
+      now
+    );
+
+    if (compressedAllocation) {
+      adjustedMaintenanceRecommendations = compressedAllocation.maintenanceRecommendations;
+      progressRecommendations = compressedAllocation.progressRecommendations;
+    }
+  }
+
+  const recommendations = [...adjustedMaintenanceRecommendations, ...progressRecommendations];
 
   if (recommendations.length === 0) {
     return createShortSessionFallback(groupPriorityBands(candidates)[0] ?? [], availableMinutes, now);
   }
 
   return recommendations;
+}
+
+function allocateProgressWithMaintenanceCompression(
+  maintenanceCandidates: ScoredActivity[],
+  maintenanceRecommendations: Recommendation[],
+  progressCandidates: ScoredActivity[],
+  leftoverMinutes: number,
+  now: Date
+) {
+  const progress = groupPriorityBands(progressCandidates).flatMap((band) => sortBandFairly(band, now))[0];
+
+  if (!progress || maintenanceRecommendations.length === 0) {
+    return null;
+  }
+
+  const progressMinimum = getSessionBounds(progress.activity).minimum;
+
+  if (leftoverMinutes >= progressMinimum) {
+    return null;
+  }
+
+  const totalMaintenanceAllocated = maintenanceRecommendations.reduce(
+    (sum, recommendation) => sum + recommendation.allocatedMinutes,
+    0
+  );
+  const maxMaintenanceCompression = roundDownToNearestFive(totalMaintenanceAllocated * 0.2);
+
+  if (maxMaintenanceCompression <= 0) {
+    return null;
+  }
+
+  const extraNeeded = progressMinimum - leftoverMinutes;
+  const compressionTarget = Math.min(extraNeeded, maxMaintenanceCompression);
+  const compressedMaintenanceRecommendations = maintenanceRecommendations.map((recommendation) => ({
+    ...recommendation
+  }));
+  const compressedMinutes = compressMaintenanceRecommendations(
+    maintenanceCandidates,
+    compressedMaintenanceRecommendations,
+    compressionTarget,
+    now
+  );
+  const progressAllocatedMinutes = leftoverMinutes + compressedMinutes;
+
+  if (progressAllocatedMinutes <= 0) {
+    return null;
+  }
+
+  return {
+    maintenanceRecommendations: compressedMaintenanceRecommendations,
+    progressRecommendations: [
+      {
+        activity: progress.activity,
+        score: progress.score,
+        neglect: progress.neglect,
+        allocatedMinutes: progressAllocatedMinutes,
+        isRecommendedBelowMinimum:
+          progressAllocatedMinutes < progressMinimum && extraNeeded > maxMaintenanceCompression,
+        rationale: progress.rationale
+      }
+    ]
+  };
+}
+
+function compressMaintenanceRecommendations(
+  maintenanceCandidates: ScoredActivity[],
+  maintenanceRecommendations: Recommendation[],
+  targetCompressionMinutes: number,
+  now: Date
+) {
+  let remainingCompression = targetCompressionMinutes;
+  let compressedMinutes = 0;
+  const recommendationsByActivityId = new Map(
+    maintenanceRecommendations.map((recommendation) => [recommendation.activity.id, recommendation])
+  );
+
+  // Controlled maintenance compression only runs when progress would otherwise
+  // be starved. It takes time from least-protected maintenance first, while
+  // never reducing a maintenance task below its minimum useful session.
+  const compressibleCandidates = maintenanceCandidates
+    .map((candidate) => {
+      const recommendation = recommendationsByActivityId.get(candidate.activity.id);
+      const minimum = getSessionBounds(candidate.activity).minimum;
+      const reducibleMinutes = recommendation
+        ? roundDownToNearestFive(Math.max(0, recommendation.allocatedMinutes - minimum))
+        : 0;
+
+      return {
+        candidate,
+        recommendation,
+        minimum,
+        reducibleMinutes,
+        protectionScore: getMaintenanceProtectionScore(candidate, recommendation, now)
+      };
+    })
+    .filter((item) => item.recommendation && item.reducibleMinutes > 0)
+    .sort(
+      (left, right) =>
+        left.protectionScore - right.protectionScore ||
+        left.candidate.score - right.candidate.score ||
+        left.candidate.activity.name.localeCompare(right.candidate.activity.name)
+    );
+
+  for (const item of compressibleCandidates) {
+    if (!item.recommendation || remainingCompression <= 0) {
+      break;
+    }
+
+    const reduction = Math.min(item.reducibleMinutes, remainingCompression);
+    item.recommendation.allocatedMinutes -= reduction;
+    remainingCompression -= reduction;
+    compressedMinutes += reduction;
+  }
+
+  return compressedMinutes;
+}
+
+function getMaintenanceProtectionScore(
+  candidate: ScoredActivity,
+  recommendation: Recommendation | undefined,
+  now: Date
+) {
+  const todayIndex = getTodayIndex(now);
+  const { minimum } = getSessionBounds(candidate.activity);
+  const allocatedMinutes = recommendation?.allocatedMinutes ?? 0;
+  const flexibleMinutes = Math.max(0, allocatedMinutes - minimum);
+
+  return (
+    getSafeImportance(candidate.activity) * 10 +
+    candidate.neglect +
+    candidate.daysSinceLastDone * 5 +
+    (candidate.activity.preferredDays?.includes(todayIndex) ? 80 : 0) +
+    (candidate.activity.isDaily ? 60 : 0) -
+    flexibleMinutes
+  );
 }
 
 function allocateFairTimeByPriorityBands(

@@ -36,6 +36,7 @@ export type ActivityLog = {
   score?: number;
   neglect?: number;
   isShortSession?: boolean;
+  isRecommendedBelowMinimum?: boolean;
   rationale?: string;
 };
 
@@ -45,6 +46,7 @@ export type Recommendation = {
   neglect: number;
   allocatedMinutes: number;
   isShortSession?: boolean;
+  isRecommendedBelowMinimum?: boolean;
   rationale: string;
 };
 
@@ -54,6 +56,7 @@ export type TodayPlanItem = {
   neglect: number;
   allocatedMinutes: number;
   isShortSession?: boolean;
+  isRecommendedBelowMinimum?: boolean;
   rationale: string;
   completedAt?: string;
 };

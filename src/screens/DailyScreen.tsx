@@ -89,6 +89,7 @@ export function DailyScreen({ navigation }: Props) {
         neglect: recommendation.neglect,
         allocatedMinutes: recommendation.allocatedMinutes,
         isShortSession: recommendation.isShortSession,
+        isRecommendedBelowMinimum: recommendation.isRecommendedBelowMinimum,
         rationale: recommendation.rationale
       }))
     };
@@ -128,6 +129,9 @@ export function DailyScreen({ navigation }: Props) {
         neglect: item.neglect,
         allocatedMinutes: item.allocatedMinutes,
         ...(item.isShortSession ? { isShortSession: item.isShortSession } : {}),
+        ...(item.isRecommendedBelowMinimum
+          ? { isRecommendedBelowMinimum: item.isRecommendedBelowMinimum }
+          : {}),
         rationale: item.rationale
       });
 
@@ -184,11 +188,11 @@ export function DailyScreen({ navigation }: Props) {
                 key={preset}
                 label={preset < 60 ? `${preset}m` : `${preset / 60}h`}
                 active={dailyAvailableMinutes === preset}
-            onPress={() => {
-              setIsEditingCustomMinutes(false);
-              setCustomMinutes(String(preset));
-              setDailyAvailableMinutes(preset);
-            }}
+                onPress={() => {
+                  setIsEditingCustomMinutes(false);
+                  setCustomMinutes(String(preset));
+                  setDailyAvailableMinutes(preset);
+                }}
               />
             ))}
           </View>

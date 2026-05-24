@@ -114,6 +114,9 @@ function restoreTodayPlanItem(
     neglect: restoredEntry.neglect ?? 0,
     allocatedMinutes: restoredEntry.minutes,
     ...(restoredEntry.isShortSession ? { isShortSession: restoredEntry.isShortSession } : {}),
+    ...(restoredEntry.isRecommendedBelowMinimum
+      ? { isRecommendedBelowMinimum: restoredEntry.isRecommendedBelowMinimum }
+      : {}),
     rationale: restoredEntry.rationale ?? `${restoredEntry.activityName} was part of today's original plan.`
   };
   const basePlan: TodayPlan =
@@ -259,6 +262,7 @@ export const useActivityStore = create<ActivityState>()((set) => ({
             score: plannedItem?.score ?? 0,
             neglect: plannedItem?.neglect ?? 0,
             isShortSession: plannedItem?.isShortSession,
+            isRecommendedBelowMinimum: plannedItem?.isRecommendedBelowMinimum,
             rationale: plannedItem?.rationale ?? `${target.name} was part of today's original plan.`
           },
           ...state.history
