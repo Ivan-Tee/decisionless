@@ -29,12 +29,23 @@ export function DailyScreen({ navigation }: Props) {
   const [customMinutes, setCustomMinutes] = useState(
     dailyAvailableMinutes > 0 ? String(dailyAvailableMinutes) : ""
   );
+  const [isEditingCustomMinutes, setIsEditingCustomMinutes] = useState(false);
   const [completingActivityIds, setCompletingActivityIds] = useState<string[]>([]);
   const completionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
+    if (isEditingCustomMinutes) {
+      return;
+    }
+
     setCustomMinutes(dailyAvailableMinutes > 0 ? String(dailyAvailableMinutes) : "");
-  }, [dailyAvailableMinutes]);
+  }, [dailyAvailableMinutes, isEditingCustomMinutes]);
+
+  const commitCustomMinutes = () => {
+    const minutes = customMinutes.trim() ? Number(customMinutes) : 0;
+    setDailyAvailableMinutes(Number.isFinite(minutes) ? minutes : 0);
+    setIsEditingCustomMinutes(false);
+  };
 
   const hasUsableTime = dailyAvailableMinutes > 0;
   const todayDateKey = getLocalDateKey();
@@ -173,10 +184,11 @@ export function DailyScreen({ navigation }: Props) {
                 key={preset}
                 label={preset < 60 ? `${preset}m` : `${preset / 60}h`}
                 active={dailyAvailableMinutes === preset}
-                onPress={() => {
-                  setCustomMinutes(String(preset));
-                  setDailyAvailableMinutes(preset);
-                }}
+            onPress={() => {
+              setIsEditingCustomMinutes(false);
+              setCustomMinutes(String(preset));
+              setDailyAvailableMinutes(preset);
+            }}
               />
             ))}
           </View>
@@ -184,10 +196,12 @@ export function DailyScreen({ navigation }: Props) {
             keyboardType="number-pad"
             value={customMinutes}
             style={centeredInputTextRegular}
+            onFocus={() => setIsEditingCustomMinutes(true)}
+            onBlur={commitCustomMinutes}
+            onSubmitEditing={commitCustomMinutes}
             onChangeText={(value) => {
               const digits = value.replace(/\D/g, "");
               setCustomMinutes(digits);
-              setDailyAvailableMinutes(digits ? Number(digits) : 0);
             }}
             placeholder="Custom minutes"
             placeholderTextColor="#9A9288"
