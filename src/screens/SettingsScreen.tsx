@@ -69,7 +69,7 @@ export function SettingsScreen() {
       return;
     }
 
-    setDailyAvailableMinutes(calculatedCalendarMinutes);
+    setDailyAvailableMinutes(calculatedCalendarMinutes, "google_calendar");
     closeCalendarFlow();
   };
 

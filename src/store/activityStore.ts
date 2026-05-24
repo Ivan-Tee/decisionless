@@ -3,6 +3,8 @@ import { appStorage } from "@/persistence/storage";
 import type { Activity, ActivityLog, TodayPlan, TodayPlanItem } from "@/types/activity";
 import { getLocalDateKey, isSameLocalDay } from "@/utils/date";
 
+type AvailableTimeSource = "manual" | "google_calendar";
+
 type ActivityState = {
   hasHydrated: boolean;
   activities: Activity[];
@@ -11,13 +13,14 @@ type ActivityState = {
   activityPlanVersion: number;
   hasCompletedOnboarding: boolean;
   dailyAvailableMinutes: number;
+  availableTimeSource: AvailableTimeSource;
   setHasHydrated: (value: boolean) => void;
   addActivity: (activity: Activity) => void;
   updateActivity: (activityId: string, updates: Activity) => void;
   updateActivityImportance: (activityId: string, importance: number) => void;
   deleteActivity: (activityId: string) => void;
   completeOnboarding: () => void;
-  setDailyAvailableMinutes: (minutes: number) => void;
+  setDailyAvailableMinutes: (minutes: number, source?: AvailableTimeSource) => void;
   setTodayPlan: (plan: TodayPlan | null) => void;
   markCompletedToday: (activityId: string, minutes: number) => void;
   restoreCompletedToday: (activityId: string, historyEntryId?: string) => void;
@@ -33,6 +36,7 @@ type PersistedActivityState = Pick<
   | "activityPlanVersion"
   | "hasCompletedOnboarding"
   | "dailyAvailableMinutes"
+  | "availableTimeSource"
 >;
 
 const STORAGE_KEY = "priority-flow-mobile-store";
@@ -43,7 +47,8 @@ const defaultState = {
   todayPlan: null,
   activityPlanVersion: 0,
   hasCompletedOnboarding: false,
-  dailyAvailableMinutes: 0
+  dailyAvailableMinutes: 0,
+  availableTimeSource: "manual" as AvailableTimeSource
 };
 
 function normalizeImportance(importance: unknown) {
@@ -146,7 +151,8 @@ function getPersistedState(state: ActivityState): PersistedActivityState {
     todayPlan: state.todayPlan,
     activityPlanVersion: state.activityPlanVersion,
     hasCompletedOnboarding: state.hasCompletedOnboarding,
-    dailyAvailableMinutes: state.dailyAvailableMinutes
+    dailyAvailableMinutes: state.dailyAvailableMinutes,
+    availableTimeSource: state.availableTimeSource
   };
 }
 
@@ -200,9 +206,10 @@ export const useActivityStore = create<ActivityState>()((set) => ({
           }
         : null,
       activityPlanVersion: state.activityPlanVersion + 1
-    })),
+  })),
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
-  setDailyAvailableMinutes: (minutes) => set({ dailyAvailableMinutes: minutes }),
+  setDailyAvailableMinutes: (minutes, source = "manual") =>
+    set({ dailyAvailableMinutes: minutes, availableTimeSource: source }),
   setTodayPlan: (plan) => set({ todayPlan: plan }),
   markCompletedToday: (activityId, minutes) =>
     set((state) => {
@@ -336,6 +343,8 @@ void appStorage
       hasCompletedOnboarding: Boolean(storedState.hasCompletedOnboarding),
       dailyAvailableMinutes:
         typeof storedState.dailyAvailableMinutes === "number" ? storedState.dailyAvailableMinutes : 0,
+      availableTimeSource:
+        storedState.availableTimeSource === "google_calendar" ? "google_calendar" : "manual",
       hasHydrated: true
     });
   })

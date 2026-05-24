@@ -84,6 +84,21 @@ export function getWindowDates(startTime: string, endTime: string) {
   };
 }
 
+function getCalculationWindowDates(startTime: string, endTime: string, now = new Date()) {
+  const selectedWindow = getWindowDates(startTime, endTime);
+
+  if (!selectedWindow) {
+    return null;
+  }
+
+  const start = new Date(Math.max(selectedWindow.start.getTime(), now.getTime()));
+
+  return {
+    start,
+    end: selectedWindow.end
+  };
+}
+
 function loadGoogleIdentityScript() {
   if (window.google?.accounts?.oauth2) {
     return Promise.resolve();
@@ -166,12 +181,17 @@ function mergeBusyIntervals(intervals: Array<{ start: number; end: number }>) {
 export async function calculateGoogleCalendarFreeMinutes(
   clientId: string,
   startTime: string,
-  endTime: string
+  endTime: string,
+  now = new Date()
 ) {
-  const windowDates = getWindowDates(startTime, endTime);
+  const windowDates = getCalculationWindowDates(startTime, endTime, now);
 
   if (!windowDates) {
     throw new Error("Enter a valid start and end time, with start before end.");
+  }
+
+  if (windowDates.start.getTime() >= windowDates.end.getTime()) {
+    return 0;
   }
 
   const accessToken = await getGoogleAccessToken(clientId);
