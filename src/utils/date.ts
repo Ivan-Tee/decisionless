@@ -41,6 +41,14 @@ export function isSameLocalDay(isoDate: string, comparisonDate = new Date()) {
   );
 }
 
+export function roundDownToNearestFive(minutes: number) {
+  if (!Number.isFinite(minutes)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(minutes / 5) * 5);
+}
+
 export function formatMinutes(totalMinutes: number) {
   if (totalMinutes < 60) {
     return `~${totalMinutes} min`;

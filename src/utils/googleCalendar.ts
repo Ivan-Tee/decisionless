@@ -1,4 +1,4 @@
-import { getLocalDateKey } from "@/utils/date";
+import { getLocalDateKey, roundDownToNearestFive } from "@/utils/date";
 
 type GoogleCalendarEvent = {
   start?: {
@@ -239,5 +239,5 @@ export async function calculateGoogleCalendarFreeMinutes(
   );
   const totalWindowMinutes = Math.round((windowEnd - windowStart) / 60000);
 
-  return Math.max(0, totalWindowMinutes - busyMinutes);
+  return roundDownToNearestFive(Math.max(0, totalWindowMinutes - busyMinutes));
 }

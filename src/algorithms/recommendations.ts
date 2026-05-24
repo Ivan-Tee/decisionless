@@ -1,5 +1,5 @@
 import type { Activity, Recommendation } from "@/types/activity";
-import { formatMinutes, getTodayIndex } from "@/utils/date";
+import { formatMinutes, getTodayIndex, roundDownToNearestFive } from "@/utils/date";
 
 const DEFAULT_IMPORTANCE = 5;
 const PROGRESS_DECAY_CAP = 120;
@@ -194,15 +194,28 @@ export function generateRecommendations(
   availableMinutes: number,
   now = new Date()
 ): Recommendation[] {
-  if (activities.length === 0 || availableMinutes <= 0) {
+  const roundedAvailableMinutes = roundDownToNearestFive(availableMinutes);
+
+  if (activities.length === 0 || roundedAvailableMinutes <= 0) {
     return [];
   }
 
-  return allocateTimeByPriorityBands(
-    scoreActivities(activities, availableMinutes, now),
-    availableMinutes,
-    now
+  return roundRecommendationAllocations(
+    allocateTimeByPriorityBands(
+      scoreActivities(activities, roundedAvailableMinutes, now),
+      roundedAvailableMinutes,
+      now
+    )
   );
+}
+
+function roundRecommendationAllocations(recommendations: Recommendation[]) {
+  return recommendations
+    .map((recommendation) => ({
+      ...recommendation,
+      allocatedMinutes: roundDownToNearestFive(recommendation.allocatedMinutes)
+    }))
+    .filter((recommendation) => recommendation.allocatedMinutes > 0);
 }
 
 function getSessionBounds(activity: Activity) {

@@ -23,7 +23,6 @@ export function DailyScreen({ navigation }: Props) {
   const todayPlan = useActivityStore((state) => state.todayPlan);
   const activityPlanVersion = useActivityStore((state) => state.activityPlanVersion);
   const dailyAvailableMinutes = useActivityStore((state) => state.dailyAvailableMinutes);
-  const availableTimeSource = useActivityStore((state) => state.availableTimeSource);
   const setDailyAvailableMinutes = useActivityStore((state) => state.setDailyAvailableMinutes);
   const setTodayPlan = useActivityStore((state) => state.setTodayPlan);
   const markCompletedToday = useActivityStore((state) => state.markCompletedToday);
@@ -198,12 +197,6 @@ export function DailyScreen({ navigation }: Props) {
 
         <View className="gap-3">
           <Text className="text-base uppercase tracking-[3px] text-mist">Best use of today</Text>
-          <Text className="text-base text-mist">
-            Time available today: {formatMinutes(dailyAvailableMinutes)}
-          </Text>
-          <Text className="text-sm uppercase tracking-[2px] text-mist">
-            {availableTimeSource === "google_calendar" ? "From Google Calendar" : "Manual"}
-          </Text>
           <Text className="text-base text-mist">
             Time in play: {formatMinutes(remainingPlannedMinutes)}
           </Text>

@@ -95,14 +95,14 @@ export function SettingsScreen() {
               <View className="gap-4">
                 <View className="gap-3">
                   <Text className="text-sm uppercase tracking-[2px] text-mist">Available day window</Text>
-                  <View className="flex-row gap-3">
+                  <View className="gap-3">
                     <TextInput
                       value={calendarStartTime}
                       style={centeredInputTextRegular}
                       onChangeText={setCalendarStartTime}
                       placeholder="07:00"
                       placeholderTextColor="#9A9288"
-                      className="flex-1 rounded-[24px] border border-line bg-paper px-5 py-4 text-lg text-ink"
+                      className="rounded-[24px] border border-line bg-paper px-5 py-4 text-lg text-ink"
                     />
                     <TextInput
                       value={calendarEndTime}
@@ -110,7 +110,7 @@ export function SettingsScreen() {
                       onChangeText={setCalendarEndTime}
                       placeholder="22:30"
                       placeholderTextColor="#9A9288"
-                      className="flex-1 rounded-[24px] border border-line bg-paper px-5 py-4 text-lg text-ink"
+                      className="rounded-[24px] border border-line bg-paper px-5 py-4 text-lg text-ink"
                     />
                   </View>
                 </View>

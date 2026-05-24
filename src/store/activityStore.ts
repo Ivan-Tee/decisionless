@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { appStorage } from "@/persistence/storage";
 import type { Activity, ActivityLog, TodayPlan, TodayPlanItem } from "@/types/activity";
-import { getLocalDateKey, isSameLocalDay } from "@/utils/date";
+import { getLocalDateKey, isSameLocalDay, roundDownToNearestFive } from "@/utils/date";
 
 type AvailableTimeSource = "manual" | "google_calendar";
 
@@ -61,6 +61,10 @@ function normalizePositiveMinutes(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? Math.round(value)
     : fallback;
+}
+
+function normalizeAvailableMinutes(minutes: number) {
+  return roundDownToNearestFive(minutes);
 }
 
 function normalizeActivity(activity: Activity): Activity {
@@ -209,7 +213,7 @@ export const useActivityStore = create<ActivityState>()((set) => ({
   })),
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
   setDailyAvailableMinutes: (minutes, source = "manual") =>
-    set({ dailyAvailableMinutes: minutes, availableTimeSource: source }),
+    set({ dailyAvailableMinutes: normalizeAvailableMinutes(minutes), availableTimeSource: source }),
   setTodayPlan: (plan) => set({ todayPlan: plan }),
   markCompletedToday: (activityId, minutes) =>
     set((state) => {
@@ -342,7 +346,9 @@ void appStorage
       activityPlanVersion: storedState.activityPlanVersion ?? 0,
       hasCompletedOnboarding: Boolean(storedState.hasCompletedOnboarding),
       dailyAvailableMinutes:
-        typeof storedState.dailyAvailableMinutes === "number" ? storedState.dailyAvailableMinutes : 0,
+        typeof storedState.dailyAvailableMinutes === "number"
+          ? normalizeAvailableMinutes(storedState.dailyAvailableMinutes)
+          : 0,
       availableTimeSource:
         storedState.availableTimeSource === "google_calendar" ? "google_calendar" : "manual",
       hasHydrated: true
