@@ -32,6 +32,10 @@ export function DailyScreen({ navigation }: Props) {
   const [completingActivityIds, setCompletingActivityIds] = useState<string[]>([]);
   const completionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
+  useEffect(() => {
+    setCustomMinutes(dailyAvailableMinutes > 0 ? String(dailyAvailableMinutes) : "");
+  }, [dailyAvailableMinutes]);
+
   const hasUsableTime = dailyAvailableMinutes > 0;
   const todayDateKey = getLocalDateKey();
   const completedTodayActivityIds = useMemo(
